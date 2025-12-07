@@ -1,0 +1,13 @@
+
+numpy
+scipy
+scikit-learn
+tqdm
+konlpy
+spacy
+markdownify
+python-frontmatter
+gensim
+# Note: Spacy model 'en_core_web_sm' must be installed:
+# python -m spacy download en_core_web_sm
+# Note: MeCab for KonlPy must be installed.
