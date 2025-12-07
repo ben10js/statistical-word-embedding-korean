@@ -1,6 +1,7 @@
 
 # Python
 __pycache__/
+test.py
 *.py[cod]
 *$py.class
 *.ipynb_checkpoints/
@@ -16,15 +17,19 @@ data/
 !src/config.py
 !vocab_index.json
 # Note: Keeping vocab_index.json if small, but usually generated.
-# Ignoring generated files in root if any remain.
-embeddings_ppmi_svd.npy
-external_embeddings_ppmi_svd.npy
-external_corpus_sent_tokens*.pkl
-external_vocab_index.json
+# Sensitive / Personal Data
+verdict*.txt
+mymeta_tokenizer*
+ngram_cache.pkl
+the-verdict.txt
+post_log.md
 
-# IDE
-.vscode/
-.idea/
+# Legacy / Unused Folders
+GPT_scratch/
+mvp 1.1/
+mvp 1.2/
+1st mvp/
+issue.md
 
 # Mecab / Wheels
 *.whl
