@@ -10,10 +10,10 @@ This project implements a **Vocabulary Bridging System** that connects a small i
 
 ## Methods
 - **Hybrid Search Strategy**:
-  1.  **Internal Lookup**: First, checks if the query term exists in the internal embedding space.
-  2.  **External Fallback**: If missing, queries the external corpus embeddings.
-  3.  **Interactive Selection**: Suggests semantically related words from the external source.
-  4.  **Bridging**: If the user selects a suggested term, it is added to the "Bridge Corpus," effectively updating the internal vocabulary for subsequent training.
+  1.  **Internal Lookup**: Initially attempts to retrieve nearest neighbors (Top-K) from the internal corpus.
+  2.  **External Fallback**: If the query is absent internally, the system searches the external corpus to find semantically similar candidate terms.
+  3.  **User-Driven Bridging**: The system presents these external candidates to the user. The user selects the term that best matches their intended nuance, which is then registered in the **"Bridge Corpus."**
+  4.  **Proxy Search (Re-entry)**: Once bridged, the system can use this approved external term as a **semantic proxy** to search the internal corpus again. This effectively connects a previously unknown query to relevant existing notes via the user-selected bridge term.
 - **Statistical Modeling**:
   - Uses **PPMI (Positive Pointwise Mutual Information)** and **SVD (Singular Value Decomposition)** to build lightweight, distinct vector spaces for both corpora.
 - **Korean Processing**: Utilizes **MeCab** for precise morphological analysis to handle agglutinative traits.
