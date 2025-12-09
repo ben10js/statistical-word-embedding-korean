@@ -1,52 +1,46 @@
-# Statistical Word Embedding for Korean Metacognition
+# Statistical Word Embedding for Pure Personal Retrieval
 
 ## Overview
-This project implements a **Hybrid Vocabulary Bridging System** that augments a small-scale private corpus with large-scale pre-trained embeddings (FastText) to resolve Data Sparsity and Out-of-Vocabulary (OOV) issues. Designed for metacognitive analysis, it connects abstract psychological terms in personal notes to broader semantic concepts found in public knowledge bases. The system features a human-in-the-loop workflow where users explicitly sanction "bridge terms," ensuring the personal vector space is expanded accurately without semantic drift.
+This project is an experiment in **"Zero-Bias" Information Retrieval** designed to explore a personal knowledge base (Obsidian) without the influence of massive, pre-trained external models (like GPT or BERT). It builds a custom, lightweight semantic space purely from the user's own writing using classical statistical methods (**Co-occurrence Matrix + PPMI + SVD**). The goal is to capture the unique, idiosyncratic associations within a personal corpus—even if the resulting vectors are "rough"—to provide authentic retrospective retrieval.
 
 ## Data
-- **Internal Data**: Private Obsidian Markdown notes (Small, domain-specific).
-- **External Data**: **Facebook FastText (cc.ko.300)** – purely data-driven, pre-trained on Common Crawl and Wikipedia (Large-scale).
-- **Bridge Data**: User-curated JSON mapping (`bridge_corpus.json`) linkage between private and public embedding spaces.
+- **Corpus**: Personal Obsidian Markdown notes.
+- **Why Internal Only?**: To prevent "semantic contamination" from public datasets. If the user associates "Apple" with "Design" rather than "Fruit," the model should reflect strictly that personal usage.
 
-## Methods
-- **Embedding Alignment**:
-  - **Internal**: Constructed using **PPMI (Positive Pointwise Mutual Information)** and **Truncated SVD** for efficient local semantic capture.
-  - **External**: Integrated **FastText** (300-dim) to handle morphological nuances and OOV terms.
-- **Search Algorithm**:
-  - Implemented a widely expandable **Proxy Search** mechanism: *Query $\rightarrow$ External Neighbor $\rightarrow$ User Verification $\rightarrow$ Internal Re-query*.
-- **Korean NLP**: Utilized **MeCab** for morphological segmentation and normalization.
+## Methods (Pure Statistical Approach)
+- **Tokenization**: **MeCab** (Korean) is used for basic morphological analysis, deliberately avoiding complex sub-word tokenizers to maintain word-level interpretability.
+- **Vector Space Construction**:
+  1.  **Co-occurrence Matrix**: Counts word neighbors within a fixed window (Window size: 5-10).
+  2.  **PPMI (Positive Pointwise Mutual Information)**: Weighs the informativeness of co-occurrences, filtering out random noise.
+  3.  **Dimensionality Reduction (SVD)**: Applies **Truncated SVD** to compress the sparse matrix into dense vectors (Dim: 100-200), capturing latent semantic structures purely from internal data.
+- **OOV Handling (Optional Add-on)**: Only when a query is completely absent from the internal space, an **External Bridge (FastText)** is consulted to find a "proxy word" that *does* exist internally, preserving the user-centric search loop.
 
 ## Results
-- **Semantic Expansion**: Successfully retrieved relevant personal notes using query terms that never appeared in the text (e.g., searching "Retrospection" finds "Reflection" via external semantic similarity).
-- **Precision**: The "Human-in-the-loop" bridging strategy maintained high retrieval relevance compared to fully automated query expansion which often introduces noise.
-- **Scalability**: Capable of handling millions of external vectors efficiently alongside the lightweight internal model.
+- **Authentic Associations**: Successfully retrieves notes based on the user's specific context (e.g., retrieving project notes via abstract concepts like "Structure" or "Flow") rather than general dictionary definitions.
+- **Transparency**: Unlike black-box neural networks, the retrieval logic is mathematically transparent (Linear Algebra), allowing full traceability of why two words are considered similar.
+- **Efficiency**: The entire indexing and retrieval pipeline runs instantly on a standard CPU.
 
 ## How to run
 
-### 1. Requirements
-- Python 3.9+
-- 4GB+ RAM (for FastText model)
-
-### 2. Installation
+### 1. Installation
 ```bash
 git clone https://github.com/ben10js/statistical-word-embedding-korean.git
 cd statistical-word-embedding-korean
 pip install -r requirements.txt
 ```
 
-### 3. Setup External Corpus
-Download and convert the official FastText model (~1.2GB compressed):
+### 2. Execution (Build Internal Index)
 ```bash
-python src/import_fasttext.py
+python main.py
 ```
+*This scans your local vault and builds the SVD-based vector space from scratch.*
 
-### 4. Execution
-Run the interactive search engine:
+### 3. Search
 ```bash
 python interactive_search.py
 ```
 
 ## What I learned
-- **Big Data Integration**: Learned practical strategies for integrating massive pre-trained models (GB-scale) with small, sparse local datasets.
-- **Vector Space Dynamics**: Gained insight into how different embedding techniques (Count-based SVD vs. Prediction-based FastText) capture different aspects of semantic relationships.
-- **OOV Resolution**: Understood that "Bridging" via a third-party corpus is a more robust solution for expanding limited vocabulary than simple synonym dictionaries.
+- **Power of Classical NLP**: Learned that for highly specialized or personal domains, simple statistical methods (SVD) can sometimes outperform generic large models by strictly adhering to the specific domain distribution.
+- **Sparsity Challenges**: Encountered the limits of word-level embedding on small data (high sparsity) and learned to mitigate it via careful window-size tuning and PPMI weighting.
+- **Value of "Rough" Data**: Realized that even "imperfect" embeddings can be valuable tools for metacognition, acting as a mirror to one's own writing habits and latent connections.
