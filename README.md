@@ -1,45 +1,52 @@
 # Statistical Word Embedding for Korean Metacognition
 
 ## Overview
-This project implements a **Vocabulary Bridging System** that connects a small internal corpus (private notes) with a large external corpus (Wikipedia/NamuWiki) to expand the semantic range of metacognitive terms. It addresses the "Out-of-Vocabulary (OOV)" problem in personal datasets by selectively importing related concepts from a broader knowledge base. When a term is missing internally, the system queries the external embedding model and, upon user approval, registers semantic neighbors into a "Bridge Corpus" for future analysis.
+This project implements a **Hybrid Vocabulary Bridging System** that augments a small-scale private corpus with large-scale pre-trained embeddings (FastText) to resolve Data Sparsity and Out-of-Vocabulary (OOV) issues. Designed for metacognitive analysis, it connects abstract psychological terms in personal notes to broader semantic concepts found in public knowledge bases. The system features a human-in-the-loop workflow where users explicitly sanction "bridge terms," ensuring the personal vector space is expanded accurately without semantic drift.
 
 ## Data
-- **Internal Corpus**: Small-scale private notes (e.g., Obsidian vault).
-- **External Corpus**: Large-scale Korean text (Wikipedia, NamuWiki) used as a fallback knowledge base.
-- **Bridge Corpus**: A curated collection of terms added by the user to bridge the gap between internal and external knowledge.
+- **Internal Data**: Private Obsidian Markdown notes (Small, domain-specific).
+- **External Data**: **Facebook FastText (cc.ko.300)** – purely data-driven, pre-trained on Common Crawl and Wikipedia (Large-scale).
+- **Bridge Data**: User-curated JSON mapping (`bridge_corpus.json`) linkage between private and public embedding spaces.
 
 ## Methods
-- **Hybrid Search Strategy**:
-  1.  **Internal Lookup**: Initially attempts to retrieve nearest neighbors (Top-K) from the internal corpus.
-  2.  **External Fallback**: If the query is absent internally, the system searches the external corpus to find semantically similar candidate terms.
-  3.  **User-Driven Bridging**: The system presents these external candidates to the user. The user selects the term that best matches their intended nuance, which is then registered in the **"Bridge Corpus."**
-  4.  **Proxy Search (Re-entry)**: Once bridged, the system can use this approved external term as a **semantic proxy** to search the internal corpus again. This effectively connects a previously unknown query to relevant existing notes via the user-selected bridge term.
-- **Statistical Modeling**:
-  - Uses **PPMI (Positive Pointwise Mutual Information)** and **SVD (Singular Value Decomposition)** to build lightweight, distinct vector spaces for both corpora.
-- **Korean Processing**: Utilizes **MeCab** for precise morphological analysis to handle agglutinative traits.
+- **Embedding Alignment**:
+  - **Internal**: Constructed using **PPMI (Positive Pointwise Mutual Information)** and **Truncated SVD** for efficient local semantic capture.
+  - **External**: Integrated **FastText** (300-dim) to handle morphological nuances and OOV terms.
+- **Search Algorithm**:
+  - Implemented a widely expandable **Proxy Search** mechanism: *Query $\rightarrow$ External Neighbor $\rightarrow$ User Verification $\rightarrow$ Internal Re-query*.
+- **Korean NLP**: Utilized **MeCab** for morphological segmentation and normalization.
 
 ## Results
-- **Vocabulary Expansion**: Successfully enables the system to "learn" new concepts (e.g., specific psychological terms) that were never explicitly written in the private notes but are relevant to the user's thinking.
-- **Selective Knowledge Integration**: Avoids polluting the personal space with irrelevant external data by requiring explicit user confirmation for bridged terms.
-- **Zero-GPU Efficiency**: Runs entirely on CPU using efficient sparse matrix operations (`scipy.sparse`), making it suitable for local environments.
+- **Semantic Expansion**: Successfully retrieved relevant personal notes using query terms that never appeared in the text (e.g., searching "Retrospection" finds "Reflection" via external semantic similarity).
+- **Precision**: The "Human-in-the-loop" bridging strategy maintained high retrieval relevance compared to fully automated query expansion which often introduces noise.
+- **Scalability**: Capable of handling millions of external vectors efficiently alongside the lightweight internal model.
 
 ## How to run
 
-### 1. Installation
+### 1. Requirements
+- Python 3.9+
+- 4GB+ RAM (for FastText model)
+
+### 2. Installation
 ```bash
 git clone https://github.com/ben10js/statistical-word-embedding-korean.git
 cd statistical-word-embedding-korean
 pip install -r requirements.txt
 ```
 
-### 2. Execution
-**Run the Interactive Bridge**:
+### 3. Setup External Corpus
+Download and convert the official FastText model (~1.2GB compressed):
+```bash
+python src/import_fasttext.py
+```
+
+### 4. Execution
+Run the interactive search engine:
 ```bash
 python interactive_search.py
 ```
-*Enter a query. If it's missing from your notes, the system will offer to fetch related terms from the external corpus.*
 
 ## What I learned
-- **Handling Data Sparsity**: Learned that small personal datasets often lack sufficient context for robust embeddings, and bridging them with a larger corpus is a practical solution.
-- **Interactive AI Design**: Designed a "Human-in-the-loop" workflow where the user acts as a filter, ensuring only high-quality, relevant terms are merged into the personal dataset.
-- **Dual-Corpus Architecture**: Gained experience in managing and querying two distinct vector spaces simultaneously to augment limited data.
+- **Big Data Integration**: Learned practical strategies for integrating massive pre-trained models (GB-scale) with small, sparse local datasets.
+- **Vector Space Dynamics**: Gained insight into how different embedding techniques (Count-based SVD vs. Prediction-based FastText) capture different aspects of semantic relationships.
+- **OOV Resolution**: Understood that "Bridging" via a third-party corpus is a more robust solution for expanding limited vocabulary than simple synonym dictionaries.
