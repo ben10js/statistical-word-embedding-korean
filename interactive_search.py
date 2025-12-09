@@ -8,6 +8,7 @@ from src.config import CONFIG
 
 # Modules
 from src.embedding_utils import nearest_by_word, l2_normalize_embeddings
+from src.bridge import BridgeManager
 
 class MetacogAISearchUI:
     def __init__(self):
@@ -15,22 +16,18 @@ class MetacogAISearchUI:
         self.main_vocab = None
         self.external_embeddings = None
         self.external_vocab = None
+        self.bridge = BridgeManager()
 
     def load_embeddings(self):
         # Paths from CONFIG
         main_emb_path = os.path.join(CONFIG["embedding_dir"], CONFIG["embedding_file"])
         main_vocab_path = os.path.join(CONFIG["vocab_dir"], CONFIG["vocab_index_file"])
         
-        # External paths (assuming same structure or legacy names in root if not in config yet)
-        # For now, let's assume they are in data/embeddings as well or use legacy names if they were generated there
-        # But main.py saves to data/embeddings.
-        # User might have external files in root?
-        # Let's try to look in data/embeddings first, then root.
-        
+        # External paths
         ext_emb_path = os.path.join(CONFIG["embedding_dir"], 'external_embeddings_ppmi_svd.npy')
         ext_vocab_path = os.path.join(CONFIG["vocab_dir"], 'external_vocab_index.json')
         
-        # Fallback to root if not found (legacy support)
+        # Fallback to root if not found
         if not os.path.exists(ext_emb_path):
              ext_emb_path = 'external_embeddings_ppmi_svd.npy'
         if not os.path.exists(ext_vocab_path):
@@ -50,7 +47,7 @@ class MetacogAISearchUI:
                 print(f"Loaded main vocab: {len(self.main_vocab)} / external vocab: {len(self.external_vocab)}")
             else:
                 print("External embeddings not found. Only main corpus will be used.")
-                self.external_vocab = {} # Empty to prevent errors
+                self.external_vocab = {} 
                 
         except Exception as e:
             print(f"Error loading embeddings: {e}")
@@ -72,8 +69,21 @@ class MetacogAISearchUI:
                 if not user_input:
                     continue
 
+                # 0. Check Bridge Corpus First
+                proxies = self.bridge.get_proxies(user_input)
+                if proxies:
+                    print(f"\n🌉 [Bridge] '{user_input}'는 '{proxies[0]}'와 연결되어 있습니다.")
+                    # Automatically perform proxy search using the first mapping
+                    print(f"   --> '{proxies[0]}' 기준으로 내부 코퍼스를 검색합니다.")
+                    self.search_internal(proxies[0])
+                    # Option to continue to external search?
+                    cont = input("\n외부 검색을 계속하시겠습니까? (y/N): ").strip().lower()
+                    if cont != 'y':
+                        continue
+
                 res = self.cross_corpus_search_with_feedback(user_input)
                 self.display_results(user_input, res)
+                
                 if res["mode"] == "cross":
                     self.ask_feedback(user_input, res["found_words"])
 
@@ -82,6 +92,18 @@ class MetacogAISearchUI:
                 break
             except Exception as e:
                 print(f"오류가 발생했습니다: {e}")
+                import traceback
+                traceback.print_exc()
+
+    def search_internal(self, word, topk=10):
+        if word in self.main_vocab:
+            main_emb_norm = l2_normalize_embeddings(self.main_embeddings)
+            results = nearest_by_word(word, main_emb_norm, self.main_vocab, topk=topk)
+            print(f"\n📖 개인 코퍼스 결과 (via Proxy '{word}'):")
+            for i, (w, score) in enumerate(results, 1):
+                print(f"  {i:2d}. {w:<15} (유사도: {score:.4f})")
+        else:
+            print(f"⚠️ Proxy 단어 '{word}'도 개인 코퍼스에 없습니다.")
 
     def cross_corpus_search_with_feedback(self, query_word, topk=10, expand_level=2, max_try_k=50):
         if query_word in self.main_vocab:
@@ -130,7 +152,7 @@ class MetacogAISearchUI:
         elif res.get("mode") == "cross":
             if res.get("found_words"):
                 print(f"\n🌐 외부+메인 연동 후보 단어 (개인 코퍼스에도 존재):")
-                print(", ".join(res["found_words"]))
+                print("   (이 중에서 가장 적절한 단어를 선택하면 Bridge Corpus에 등록됩니다)")
             else:
                 print("❌ 외부 의미망 기반 후보도 개인 문서에는 없습니다.")
             if res.get("suggestions"):
@@ -138,29 +160,37 @@ class MetacogAISearchUI:
 
     def ask_feedback(self, query, found_words):
         if not found_words: return
-        print(f"\n💬 {query}와 주관적으로 가장 가까운 단어를 아래 후보 중에서 골라주세요:")
+        print(f"\n💬 '{query}'와(과) 의미가 가장 통하는 단어를 선택하세요 (Bridge 등록):")
         for i, w in enumerate(found_words, 1):
             print(f"  {i:2d}. {w}")
-        print("입력: 번호 또는 단어 (스킵하려면 Enter)")
+        print("입력: 번호 또는 단어 (Enter to skip)")
         choice = input("선택: ").strip()
+        
+        selected_word = None
         if choice.isdigit():
             idx = int(choice)
             if 1 <= idx <= len(found_words):
-                print(f"⭐️ '{query}'와 주관적으로 가장 가까운 단어: {found_words[idx-1]}")
+                selected_word = found_words[idx-1]
         elif choice in found_words:
-            print(f"⭐️ '{query}'와 주관적으로 가장 가까운 단어: {choice}")
+            selected_word = choice
+            
+        if selected_word:
+            print(f"✅ '{query}' <-> '{selected_word}' 연결이 Bridge Corpus에 저장되었습니다.")
+            self.bridge.add_mapping(query, selected_word)
+            
+            # Immediate Proxy Search
+            print(f"\n🔍 '{selected_word}'(으)로 개인 코퍼스를 재검색합니다...")
+            self.search_internal(selected_word)
         else:
-            print("피드백이 저장되지 않았습니다.")
+            print("선택하지 않았습니다.")
 
     def show_help(self):
         print("\n=== 도움말 ===")
-        print("이 시스템은 개인 문서/외부 지식 의미 네트워크 기반으로")
-        print("입력한 단어와 의미적으로 가까운 단어를 찾아줍니다.")
-        print("개별 코퍼스 또는 외부→개인 교집합 기반 추천과 주관적 피드백을 지원합니다.")
+        print("1. 검색어 입력 -> 개인 코퍼스 검색")
+        print("2. 개인 코퍼스에 없으면 -> 외부 코퍼스 검색")
+        print("3. 외부 결과 선택 -> Bridge Corpus에 저장 -> 개인 코퍼스 재검색 (Proxy Search)")
 
-# 실행 예시
 if __name__ == "__main__":
     search_engine = MetacogAISearchUI()
     if search_engine.load_embeddings():
         search_engine.interactive_search()
-
