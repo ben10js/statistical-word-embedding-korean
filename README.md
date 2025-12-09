@@ -1,25 +1,27 @@
 # Statistical Word Embedding for Korean Metacognition
 
 ## Overview
-This project implements a statistical word embedding model from scratch to analyze and expand the vocabulary related to "metacognition" in the Korean language. Unlike pre-trained heavy models (like BERT), this lightweight approach builds a domain-specific vector space using Co-occurrence Matrices, PPMI (Positive Pointwise Mutual Information), and SVD (Singular Value Decomposition). It is designed to capture subtle semantic nuances in abstract psychological terms.
+This project implements a **Vocabulary Bridging System** that connects a small internal corpus (private notes) with a large external corpus (Wikipedia/NamuWiki) to expand the semantic range of metacognitive terms. It addresses the "Out-of-Vocabulary (OOV)" problem in personal datasets by selectively importing related concepts from a broader knowledge base. When a term is missing internally, the system queries the external embedding model and, upon user approval, registers semantic neighbors into a "Bridge Corpus" for future analysis.
 
 ## Data
-- **Corpus**: Korean Wikipedia (Dump), NamuWiki (selected subsets), and specialized psychology texts.
-- **Dictionary**: MeCab-ko dictionary for precise Korean morphological analysis.
-- **Format**: Plain text files processed into tokenized streams.
+- **Internal Corpus**: Small-scale private notes (e.g., Obsidian vault).
+- **External Corpus**: Large-scale Korean text (Wikipedia, NamuWiki) used as a fallback knowledge base.
+- **Bridge Corpus**: A curated collection of terms added by the user to bridge the gap between internal and external knowledge.
 
 ## Methods
-- **Morphological Analysis**: Utilized **MeCab** (via `konlpy`/`ko-dic`) to handle Korean agglutinative structure, extracting nouns and significant roots.
+- **Hybrid Search Strategy**:
+  1.  **Internal Lookup**: First, checks if the query term exists in the internal embedding space.
+  2.  **External Fallback**: If missing, queries the external corpus embeddings.
+  3.  **Interactive Selection**: Suggests semantically related words from the external source.
+  4.  **Bridging**: If the user selects a suggested term, it is added to the "Bridge Corpus," effectively updating the internal vocabulary for subsequent training.
 - **Statistical Modeling**:
-  - **Co-occurrence Matrix**: Constructed a symmetric matrix counting word neighbors within a fixed window size.
-  - **PPMI weighting**: Applied Positive Pointwise Mutual Information to normalize frequencies and highlight meaningful associations over common ones.
-  - **Dimensionality Reduction (SVD)**: Applied Truncated SVD to reduce the sparse high-dimensional matrix into dense word vectors (size: 100-300).
-- **Expansion**: Used Cosine Similarity to retrieve nearest neighbors for seed terms like "introspection" or "self-regulation".
+  - Uses **PPMI (Positive Pointwise Mutual Information)** and **SVD (Singular Value Decomposition)** to build lightweight, distinct vector spaces for both corpora.
+- **Korean Processing**: Utilizes **MeCab** for precise morphological analysis to handle agglutinative traits.
 
 ## Results
-- **Domain-Specific Embeddings**: Successfully clustered abstract concepts (e.g., '성찰'(reflection) $\approx$ '회고'(retrospection)) more effectively for this specific domain than general-purpose small embeddings.
-- **Efficiency**: The entire pipeline runs on specific CPUs without requiring GPU acceleration, creating a portable and reproducible NLP module.
-- **Visualization**: Capable of projecting high-dimensional word relationships into 2D space for analysis.
+- **Vocabulary Expansion**: Successfully enables the system to "learn" new concepts (e.g., specific psychological terms) that were never explicitly written in the private notes but are relevant to the user's thinking.
+- **Selective Knowledge Integration**: Avoids polluting the personal space with irrelevant external data by requiring explicit user confirmation for bridged terms.
+- **Zero-GPU Efficiency**: Runs entirely on CPU using efficient sparse matrix operations (`scipy.sparse`), making it suitable for local environments.
 
 ## How to run
 
@@ -31,19 +33,13 @@ pip install -r requirements.txt
 ```
 
 ### 2. Execution
-**Build Embeddings**:
-```bash
-python main.py
-```
-*This tokenizes the corpus, builds the matrix, and saves the vectors to `data/`.*
-
-**Interactive Search**:
+**Run the Interactive Bridge**:
 ```bash
 python interactive_search.py
 ```
-*Enter a query word to see its nearest semantic neighbors.*
+*Enter a query. If it's missing from your notes, the system will offer to fetch related terms from the external corpus.*
 
 ## What I learned
-- **Matrix Operations**: Gained deep understanding of linear algebra in NLP, specifically how SVD compresses semantic information.
-- **Korean NLP Challenges**: Learned to tackle unique challenges in Korean tokenization (postposition removal, compound nouns) which are absent in English NLP.
-- **Sparse Data Handling**: Implemented optimized sparse matrix operations (`scipy.sparse`) to handle vocabulary sizes exceeding 100,000 terms efficiently.
+- **Handling Data Sparsity**: Learned that small personal datasets often lack sufficient context for robust embeddings, and bridging them with a larger corpus is a practical solution.
+- **Interactive AI Design**: Designed a "Human-in-the-loop" workflow where the user acts as a filter, ensuring only high-quality, relevant terms are merged into the personal dataset.
+- **Dual-Corpus Architecture**: Gained experience in managing and querying two distinct vector spaces simultaneously to augment limited data.
