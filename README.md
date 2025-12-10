@@ -1,11 +1,11 @@
-# Statistical Word Embedding for Pure Personal Retrieval
+# Statistical Word Embedding for Personal Retrieval
 
 ## Overview
-This project is an experiment in **"Zero-Bias" Information Retrieval** designed to explore a personal knowledge base (Obsidian) without the influence of massive, pre-trained external models (like GPT or BERT). It builds a custom, lightweight semantic space purely from the user's own writing using classical statistical methods (**Co-occurrence Matrix + PPMI + SVD**). The goal is to capture the unique, idiosyncratic associations within a personal corpus—even if the resulting vectors are "rough"—to provide authentic retrospective retrieval.
+This project explores personal information retrieval over an Obsidian-based knowledge base without relying on large pre-trained external models (e.g., GPT or BERT). It builds a custom, lightweight semantic space from the user’s own notes using classical statistical methods (co-occurrence matrix + PPMI + SVD). The objective is to capture user-specific associations within a personal corpus and provide interpretable retrospective retrieval.   
 
 ## Data
 - **Corpus**: Personal Obsidian Markdown notes.
-- **Why Internal Only?**: To prevent "semantic contamination" from public datasets. If the user associates "Apple" with "Design" rather than "Fruit," the model should reflect strictly that personal usage.
+- **Why Internal Only?**: The goal is to avoid semantic drift from public datasets. For example, if the user tends to associate “Apple” with “design” rather than “fruit,” the model keeps that preference.
 
 ## Methods (Pure Statistical Approach)
 - **Tokenization**: **MeCab** (Korean) is used for basic morphological analysis, deliberately avoiding complex sub-word tokenizers to maintain word-level interpretability.
@@ -16,8 +16,8 @@ This project is an experiment in **"Zero-Bias" Information Retrieval** designed 
 - **OOV Handling (Optional Add-on)**: Only when a query is completely absent from the internal space, an **External Bridge (FastText)** is consulted to find a "proxy word" that *does* exist internally, preserving the user-centric search loop.
 
 ## Results
-- **Authentic Associations**: Successfully retrieves notes based on the user's specific context (e.g., retrieving project notes via abstract concepts like "Structure" or "Flow") rather than general dictionary definitions.
-- **Transparency**: Unlike black-box neural networks, the retrieval logic is mathematically transparent (Linear Algebra), allowing full traceability of why two words are considered similar.
+- **Authentic Associations**: Retrieves top-k words list based on the user's specific context rather than general dictionary definitions.
+- **Transparency**: Unlike black-box neural networks, the retrieval logic is transparent(user's choice, linear algebra), allowing full traceability of why two words are considered similar.
 - **Efficiency**: The entire indexing and retrieval pipeline runs instantly on a standard CPU.
 
 ## How to run
@@ -41,6 +41,6 @@ python interactive_search.py
 ```
 
 ## What I learned
-- **Power of Classical NLP**: Learned that for highly specialized or personal domains, simple statistical methods (SVD) can sometimes outperform generic large models by strictly adhering to the specific domain distribution.
+- **Power of Classical NLP**: Learned that for highly specialized or personal domains, simple statistical methods (SVD) can sometimes be competitive by strictly adhering to the specific domain distribution(user's subjectivity).
 - **Sparsity Challenges**: Encountered the limits of word-level embedding on small data (high sparsity) and learned to mitigate it via careful window-size tuning and PPMI weighting.
-- **Value of "Rough" Data**: Realized that even "imperfect" embeddings can be valuable tools for metacognition, acting as a mirror to one's own writing habits and latent connections.
+- **Value of "Rough" Data**: Realized that even "imperfect" embeddings can be valuable tools for self-introspection, acting as a mirror to one's own writing habits and latent connections.
