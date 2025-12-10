@@ -37,3 +37,4 @@ issue.md
 # Logs
 *.log
 venv310/
+downloads/
