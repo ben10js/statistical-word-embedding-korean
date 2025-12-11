@@ -1,4 +1,4 @@
-# Statistical Word Embedding for Personal Retrieval
+# Bridging Word Embedding for Personal Retrieval
 
 ## Overview
 This project explores personal information retrieval over an Obsidian-based knowledge base without relying on large pre-trained external models (e.g., GPT or BERT). It builds a custom, lightweight semantic space from the user’s own notes using classical statistical methods (co-occurrence matrix + PPMI + SVD). The objective is to capture user-specific associations within a personal corpus and provide interpretable retrospective retrieval.   
